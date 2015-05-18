@@ -9,66 +9,155 @@
 
 /* variables */
 
-var tiles;
+var tiles,
+    acceptInput = true;
 
 /* functions */
 
 function init() {
 
-	tiles = $('#ti div');
-	updateBleed();
+    tiles = $('#ti div');
+    updateBleed();
 
 }
 
 function updateBleed() {
 
-	// have fun deciphering this
-	[[[[0,0], [-18,28]], [0, 1, 2, 3], 23],
-	 [[[0,0], [3,  -5]], [9,15,21,27], -4]].forEach(function(data){
-		data[0].forEach(function(diff){
-			data[1].forEach(function(index){
-				var newClass = $(tiles[index + data[2] + diff[0]]).attr('class');
-				$(tiles[index + diff[1]]).attr('class', newClass);
-			});
-		});
-	});
+    updateIds();
+
+    // have fun deciphering this
+    var nightmare = [[ [[0,0], [-18,30]], [1, 2, 3, 4 ], 24] ,
+                     [ [[0,0], [3,  -5]], [11,17,23,29], -4] ];
+
+    nightmare.forEach(function(data){
+        data[0].forEach(function(diff){
+            data[1].forEach(function(index){
+
+                var elCopy = $('#t' + (index + diff[0] + data[2])),
+                    elPaste = $('#t' + (index + diff[1])),
+                    newStripped;
+
+                if (elPaste.attr('class') != null) {
+                    var newStripped =
+                        elPaste.attr('class').replace(/g[0-9]*[ \t]*/,'');
+                } else {
+                    var newStripped = '';
+                }
+
+                var newExtracted = elCopy.attr('class').match(/g[0-9]*/)[0];
+
+                var valSpaced = newStripped.length > 0 ? ' ' : '',
+                    valNew = newStripped + valSpaced + newExtracted;
+                elPaste.attr('class', valNew);
+
+            });
+        });
+    });
+
+}
+
+function updateIds() {
+
+    var positions = [-25, 0, 25, 50, 75, 100];
+    tiles.each(function(){
+
+        var tilePos = parsePosition(this.style.cssText),
+            indexX = positions.indexOf(tilePos[0]),
+            indexY = positions.indexOf(tilePos[1]),
+            id;
+        id = indexX + indexY * 6;
+
+        $(this).attr('id', 't' + id);
+
+    });
+
+}
+
+function parsePosition(cssText) {
+
+    var reLeft = /left:[ \t]*([-0-9]*)%/,
+        reTop = /top:[ \t]*([-0-9]*)%/;
+
+    var strLeft = cssText.match(reLeft)[1],
+        strTop = cssText.match(reTop)[1];
+
+    var valLeft = parseInt(strLeft),
+        valTop = parseInt(strTop);
+
+    return [valLeft, valTop];
 
 }
 
 function inputHandle(e) {
 
-	var navIndex = $('#c nav').index($(this).parent()),
-		aIndex = $('#c nav').eq(navIndex).children('a').index($(this));
+    if (acceptInput) {
 
-	move(navIndex, aIndex);
+        var navIndex = $('#c nav').index($(this).parent()),
+            aIndex = $('#c nav').eq(navIndex).children('a').index($(this));
+
+        // prevent quick simultaneous inputs
+        acceptInput = false;
+        setTimeout(function(){
+            acceptInput = true;
+        }, 250);
+
+        move(navIndex, aIndex);
+
+    }
 
 }
 
 function move(navIndex, aIndex) {
 
-	console.log(aIndex);
+    var condition = [], // describes tiles to move
+        alter = [],     // describes how to move them
+        navIndexMod = navIndex % 2; // group vertical and horizontal buttons
 
-	var condition = [],
-		alter = [];
+    condition[0] = navIndexMod == 0 ? 'left' : 'top'; // elem. search property
+    condition[1] = aIndex * 25; // elem. search value
+    alter[0] = navIndexMod == 0 ? 'top' : 'left'; // elem. replace property
+    alter[1] = navIndex == 1 || navIndex == 2 ? 25 : -25; // elem. replace value
 
-	navIndex %= 2;
-	condition[0] = navIndex == 0 ? 'left' : 'top';
-	condition[1] = aIndex * 25;
-	alter[0] = navIndex == 0 ? 'top' : 'left';
-	alter[1] = navIndex == 1 || navIndex == 2 ? '+=25' : '-=25';
+    // get the elements conditional property, e.g., "left: 25%"
+    var reProperty = new RegExp(condition[0] + ':[ \\t]*' + condition[1] + '%');
 
-	var regex = new RegExp(condition[0] + '\\:[ \\t]*' + condition[1] + '\\%');
-	console.log(regex);
-	tiles.each(function(index){
-		if ($(this).attr('style').search(regex) > -1) {
-			$(this).addClass('alter');
-		}
-	});
+    // give "alter" class to elements that need moving
+    tiles.each(function(index){
 
-	$('.alter').css(alter[0], alter[1] + '%');
+        if ($(this).attr('style').search(reProperty) > -1) {
+            $(this).addClass('alter');
+        }
 
-	// $('.alter').removeClass('alter');
-	// updateBleed();
+    });
+
+    // remove disable transition class in a moment
+    setTimeout(function(){
+        $('.dt').removeClass('dt');
+    },10);
+
+    // increase or decrease value manually (jquery doesn't like percentages)
+    $('.alter').each(function(){
+
+        // parse coords, and pick out the one we want to alter
+        var coordIndex = alter[0] == 'left' ? 0 : 1,
+            coord = parsePosition(this.style.cssText)[coordIndex];
+        coord += alter[1];
+
+        if (coord > 100) {
+            coord = -25;
+            $(this).addClass('dt');
+        } else if (coord < -25) {
+            coord = 100;
+            $(this).addClass('dt');
+        }
+
+        $(this).css(alter[0], coord + '%');
+
+    });
+
+    // remove "alter" class and update bleed tiles' colours
+    $('.alter').removeClass('alter');
+    updateBleed();
 
 }
 
@@ -76,8 +165,8 @@ function move(navIndex, aIndex) {
 
 $(function(){
 
-	init();
+    init();
 
-	$('#c a').on('mouseup', inputHandle);
+    $('#c a').on('mouseup', inputHandle);
 
 });

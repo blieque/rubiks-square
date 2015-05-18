@@ -111,3 +111,6 @@ main {
 	background:#fff;
 	transition:.4s;
 }
+#ti div.dt { /* disable transition */
+	transition:none!important;
+}
