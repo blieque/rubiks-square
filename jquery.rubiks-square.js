@@ -18,6 +18,16 @@ function init() {
 
     tiles = $('#ti div');
     updateBleed();
+    
+    $('#ti div').addClass('dt');
+    for (var i = 0; i < 20; i++) {
+        var navIndex = Math.floor(Math.random() * 4),
+            aIndex = Math.floor(Math.random() * 4);
+        $('#c nav').eq(navIndex)
+            .children('a').eq(aIndex)
+            .trigger('mouseup', true);
+    }
+    $('.dt').removeClass('dt');
 
 }
 
@@ -88,26 +98,30 @@ function parsePosition(cssText) {
 
 }
 
-function inputHandle(e) {
+function inputHandle(e, forceInput) {
 
-    if (acceptInput) {
+    if (acceptInput || forceInput) {
 
         var navIndex = $('#c nav').index($(this).parent()),
             aIndex = $('#c nav').eq(navIndex).children('a').index($(this));
 
         // prevent quick simultaneous inputs
-        acceptInput = false;
-        setTimeout(function(){
-            acceptInput = true;
-        }, 250);
+        if (!forceInput) {
 
-        move(navIndex, aIndex);
+            acceptInput = false;
+            setTimeout(function(){
+                acceptInput = true;
+            }, 250);
+
+        }
+
+        move(navIndex, aIndex, forceInput);
 
     }
 
 }
 
-function move(navIndex, aIndex) {
+function move(navIndex, aIndex, forceInput) {
 
     var condition = [], // describes tiles to move
         alter = [],     // describes how to move them
@@ -131,9 +145,11 @@ function move(navIndex, aIndex) {
     });
 
     // remove disable transition class in a moment
-    setTimeout(function(){
-        $('.dt').removeClass('dt');
-    },10);
+    if (!forceInput) {
+        setTimeout(function(){
+            $('.dt').removeClass('dt');
+        },100);
+    }
 
     // increase or decrease value manually (jquery doesn't like percentages)
     $('.alter').each(function(){
@@ -157,7 +173,9 @@ function move(navIndex, aIndex) {
 
     // remove "alter" class and update bleed tiles' colours
     $('.alter').removeClass('alter');
-    updateBleed();
+    if (!forceInput) {
+        updateBleed();
+    }
 
 }
 
